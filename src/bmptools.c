@@ -113,7 +113,7 @@ void bmp_WriteImage(int outputFileDescriptor_fd, uint8_t **pixelData_ppu8, int32
     for(column_s32 = unpaddedWidth_s32; column_s32 < imageWidth_s32; column_s32++)
         for(row_s32 = 0; row_s32 < imageHeight_s32; row_s32++)
             pixelData_ppu8[row_s32][column_s32] = BMP_COLOR_WHITE;
-    
+
     printf("\t");
     bmp_WriteFileHeader(outputFileDescriptor_fd, unpaddedWidth_s32, imageHeight_s32);
 
@@ -123,29 +123,13 @@ void bmp_WriteImage(int outputFileDescriptor_fd, uint8_t **pixelData_ppu8, int32
     printf("\t");
     bmp_WriteColorPalette(outputFileDescriptor_fd);
 
+    printf("\tWriting the pixel data... ");
     for(row_s32 = imageHeight_s32 - 1; row_s32 >= 0; row_s32--)
     {
-        if(row_s32 == imageHeight_s32 / 4)
+        if(write(outputFileDescriptor_fd, pixelData_ppu8[row_s32], imageWidth_s32 * sizeof(pixelData_ppu8[row_s32][0])) < 0)
         {
-            printf("\t75%%\n");
-        }
-        else if(row_s32 == imageHeight_s32 / 2)
-        {
-            printf("\t50%%\n");
-        }
-        else if(row_s32 == 3 * imageHeight_s32 / 4)
-        {
-            printf("\t25%%\n");
-        }
-
-        for(column_s32 = 0; column_s32 < imageWidth_s32; column_s32++)
-        {
-            if(write(outputFileDescriptor_fd, &pixelData_ppu8[row_s32][column_s32], sizeof(pixelData_ppu8[row_s32][column_s32])) < 0)
-            {
-                utils_ErrorMessage("writing the pixel data to the output file");
-            }
+            utils_ErrorMessage("writing the pixel data to the output file");
         }
     }
-
-    printf("\t100%%\n");
+    printf("done\n");
 }
