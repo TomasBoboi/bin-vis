@@ -21,21 +21,18 @@ int main(int argc, char **argv)
 {
     if(REQUIRED_ARGS_NO_U32 != argc)
     {
-        printf("Usage: ./bin-vis <file-name>\n");
-        exit(EXIT_FAILURE);
+        utils_ErrorMessage("Usage: ./bin-vis <input-file-name>\n");
     }
 
     fileDescriptor_fd = open(argv[1], O_RDONLY, S_IRUSR | S_IRGRP | S_IROTH);
     if(-1 == fileDescriptor_fd)
     {
-        printf("Invalid input file!");
-        exit(EXIT_FAILURE);
+        utils_ErrorMessage("Invalid input file!");
     }
 
     if(-1 == fstat(fileDescriptor_fd, &binaryFileStats_st))
     {
-        printf("Could not retrieve input file characteristics!");
-        exit(EXIT_FAILURE);
+        utils_ErrorMessage("Could not retrieve input file characteristics!");
     }
 
     binaryFileSize_u32 = binaryFileStats_st.st_size;
@@ -44,11 +41,9 @@ int main(int argc, char **argv)
     numberOfBytesRead_sz = read(fileDescriptor_fd, &binaryFileContents_pu8, binaryFileSize_u32);
     if(numberOfBytesRead_sz != binaryFileSize_u32)
     {
-        printf("Could not read the entire input file!");
-        exit(EXIT_FAILURE);
+        utils_ErrorMessage("Could not read the entire input file!");
     }
 
     free(binaryFileContents_pu8);
-
     return 0;
 }
