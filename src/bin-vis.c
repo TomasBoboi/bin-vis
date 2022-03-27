@@ -6,44 +6,108 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define REQUIRED_ARGS_NO_U32 2u
-#define READ_BUFFER_SIZE_U32 16u
+#include "bmptools.h"
+#include "utils.h"
 
-int fileDescriptor_fd = -1;
-ssize_t numberOfBytesRead_sz = 0;
-uint8_t readBytes_au8[READ_BUFFER_SIZE_U32] = {0};
+#define REQUIRED_ARGS_NO_U32 3u
 
-uint32_t binaryFileSize_u32 = 0;
-uint8_t * binaryFileContents_pu8;
+char*   inputFileName_pc;
+int     inputFileDescriptor_fd = -1;
+ssize_t inputNumberOfBytesRead_sz = 0;
+
 struct stat binaryFileStats_st;
+uint32_t    binaryFileSize_u32 = 0;
+uint8_t**   binaryFileContents_ppu8;
+
+char*   outputFileName_pc = "./a.bmp";
+int     outputFileDescriptor_fd = -1;
+
+int32_t outputImageWidth_s32 = 128;
+int32_t outputImageHeight_s32;
 
 int main(int argc, char **argv)
 {
-    if(REQUIRED_ARGS_NO_U32 != argc)
+    if(REQUIRED_ARGS_NO_U32 > argc || 0 == argc % 2)
     {
-        utils_ErrorMessage("Usage: ./bin-vis <input-file-name>\n");
+        utils_ErrorMessage("Usage: ./bin-vis -i <input-file-name> [-o <output-file-name>] [-w <image-width>]\n");
     }
 
-    fileDescriptor_fd = open(argv[1], O_RDONLY, S_IRUSR | S_IRGRP | S_IROTH);
-    if(-1 == fileDescriptor_fd)
+    for(uint32_t argIndex_u32 = 1; argIndex_u32 < argc; argIndex_u32++)
     {
-        utils_ErrorMessage("Invalid input file!");
+        switch(argv[argIndex_u32][1])
+        {
+            case 'i':
+                inputFileName_pc = argv[++argIndex_u32];
+                break;
+
+            case 'o':
+                outputFileName_pc = argv[++argIndex_u32];
+                break;
+
+            case 'w':
+                outputImageWidth_s32 = atoi(argv[++argIndex_u32]);
+                break;
+
+            default:
+                utils_ErrorMessage("Usage: ./bin-vis -i <input-file-name> [-o <output-file-name>] [-w <image-width>]\n");
+                break;
+        }
     }
 
-    if(-1 == fstat(fileDescriptor_fd, &binaryFileStats_st))
+    inputFileDescriptor_fd = open(inputFileName_pc, O_RDONLY, S_IRUSR | S_IRGRP | S_IROTH);
+    if(-1 == inputFileDescriptor_fd)
     {
-        utils_ErrorMessage("Could not retrieve input file characteristics!");
+        utils_ErrorMessage("invalid input file");
+    }
+
+    if(-1 == fstat(inputFileDescriptor_fd, &binaryFileStats_st))
+    {
+        utils_ErrorMessage("could not retrieve input file characteristics");
     }
 
     binaryFileSize_u32 = binaryFileStats_st.st_size;
-    binaryFileContents_pu8 = (uint8_t *)malloc(binaryFileSize_u32 * sizeof(uint8_t));
 
-    numberOfBytesRead_sz = read(fileDescriptor_fd, &binaryFileContents_pu8, binaryFileSize_u32);
-    if(numberOfBytesRead_sz != binaryFileSize_u32)
+    outputImageHeight_s32 = binaryFileSize_u32 / outputImageWidth_s32;
+
+    if(0 != binaryFileSize_u32 % outputImageWidth_s32)
     {
-        utils_ErrorMessage("Could not read the entire input file!");
+        outputImageHeight_s32++;
     }
 
-    free(binaryFileContents_pu8);
+    binaryFileContents_ppu8 = (uint8_t **)malloc(outputImageHeight_s32 * sizeof(uint8_t *));
+    for(int32_t rowIndex_s32 = 0; rowIndex_s32 < outputImageHeight_s32; rowIndex_s32++)
+    {
+        binaryFileContents_ppu8[rowIndex_s32] = (uint8_t *)malloc(outputImageWidth_s32 * sizeof(uint8_t));
+
+        for(int32_t columnIndex_s32 = 0; columnIndex_s32 < outputImageWidth_s32; columnIndex_s32++)
+        {
+            binaryFileContents_ppu8[rowIndex_s32][columnIndex_s32] = 0;
+        }
+
+        inputNumberOfBytesRead_sz += read(inputFileDescriptor_fd, binaryFileContents_ppu8[rowIndex_s32], outputImageWidth_s32);
+    }
+
+    if(inputNumberOfBytesRead_sz != binaryFileSize_u32)
+    {
+        utils_ErrorMessage("could not read the entire input file");
+    }
+
+    outputFileDescriptor_fd = open(outputFileName_pc, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    if(-1 == outputFileDescriptor_fd)
+    {
+        utils_ErrorMessage("invalid output file");
+    }
+
+    bmp_WriteImage(outputFileDescriptor_fd, binaryFileContents_ppu8, outputImageWidth_s32, outputImageHeight_s32);
+
+    close(inputFileDescriptor_fd);
+    close(outputFileDescriptor_fd);
+
+    for(int32_t rowIndex_s32 = 0; rowIndex_s32 < outputImageHeight_s32; rowIndex_s32++)
+    {
+        free(binaryFileContents_ppu8[rowIndex_s32]);
+    }
+    free(binaryFileContents_ppu8);
+
     return 0;
 }
