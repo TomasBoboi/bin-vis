@@ -4,9 +4,9 @@
 #define BMP_FILE_TYPE               0x424D
 #define BMP_HEADER_SIZE             14
 #define BMP_INFO_HEADER_SIZE        40
-#define BMP_PALETTE_SIZE            (256*4)
+#define BMP_PALETTE_SIZE            (2*4)
 #define BMP_COLOR_PLANES            1
-#define BMP_COLOR_DEPTH             8
+#define BMP_COLOR_DEPTH             1
 #define BMP_COMPRESSION_METHOD      0
 #define BMP_HORIZONTAL_RESOLUTION   0
 #define BMP_VERTICAL_RESOLUTION     0

@@ -16,13 +16,14 @@ int     inputFileDescriptor_fd = -1;
 ssize_t inputNumberOfBytesRead_sz = 0;
 
 struct stat binaryFileStats_st;
-uint32_t    binaryFileSize_u32 = 0;
+uint32_t    binaryFileSizeBytes_u32 = 0;
 uint8_t**   binaryFileContents_ppu8;
 
 char*   outputFileName_pc = "./a.bmp";
 int     outputFileDescriptor_fd = -1;
 
-int32_t outputImageWidth_s32 = 128;
+int32_t outputImageWidthBits_s32 = 128;
+int32_t outputImageWidthBytes_s32;
 int32_t outputImageHeight_s32;
 
 int main(int argc, char **argv)
@@ -45,7 +46,7 @@ int main(int argc, char **argv)
                 break;
 
             case 'w':
-                outputImageWidth_s32 = atoi(argv[++argIndex_u32]);
+                outputImageWidthBits_s32 = atoi(argv[++argIndex_u32]);
                 break;
 
             default:
@@ -65,29 +66,30 @@ int main(int argc, char **argv)
         utils_ErrorMessage("could not retrieve input file characteristics");
     }
 
-    binaryFileSize_u32 = binaryFileStats_st.st_size;
+    binaryFileSizeBytes_u32 = binaryFileStats_st.st_size;
 
-    outputImageHeight_s32 = binaryFileSize_u32 / outputImageWidth_s32;
+    outputImageWidthBytes_s32 = outputImageWidthBits_s32 / 8;
+    outputImageHeight_s32 = (binaryFileSizeBytes_u32 / outputImageWidthBytes_s32);
 
-    if(0 != binaryFileSize_u32 % outputImageWidth_s32)
+    if(0 != (binaryFileSizeBytes_u32 * 8) % outputImageWidthBits_s32)
     {
         outputImageHeight_s32++;
     }
 
     binaryFileContents_ppu8 = (uint8_t **)malloc(outputImageHeight_s32 * sizeof(uint8_t *));
-    for(int32_t rowIndex_s32 = 0; rowIndex_s32 < outputImageHeight_s32; rowIndex_s32++)
+    for(int32_t rowIndex_s32 = outputImageHeight_s32 - 1; rowIndex_s32 >= 0; rowIndex_s32--)
     {
-        binaryFileContents_ppu8[rowIndex_s32] = (uint8_t *)malloc(outputImageWidth_s32 * sizeof(uint8_t));
+        binaryFileContents_ppu8[rowIndex_s32] = (uint8_t *)malloc(outputImageWidthBytes_s32 * sizeof(uint8_t));
 
-        for(int32_t columnIndex_s32 = 0; columnIndex_s32 < outputImageWidth_s32; columnIndex_s32++)
+        for(int32_t columnIndex_s32 = 0; columnIndex_s32 < outputImageWidthBytes_s32; columnIndex_s32++)
         {
             binaryFileContents_ppu8[rowIndex_s32][columnIndex_s32] = 0;
         }
 
-        inputNumberOfBytesRead_sz += read(inputFileDescriptor_fd, binaryFileContents_ppu8[rowIndex_s32], outputImageWidth_s32);
+        inputNumberOfBytesRead_sz += read(inputFileDescriptor_fd, binaryFileContents_ppu8[rowIndex_s32], outputImageWidthBytes_s32);
     }
 
-    if(inputNumberOfBytesRead_sz != binaryFileSize_u32)
+    if(inputNumberOfBytesRead_sz != binaryFileSizeBytes_u32)
     {
         utils_ErrorMessage("could not read the entire input file");
     }
@@ -98,7 +100,7 @@ int main(int argc, char **argv)
         utils_ErrorMessage("invalid output file");
     }
 
-    bmp_WriteImage(outputFileDescriptor_fd, binaryFileContents_ppu8, outputImageWidth_s32, outputImageHeight_s32);
+    bmp_WriteImage(outputFileDescriptor_fd, binaryFileContents_ppu8, outputImageWidthBytes_s32, outputImageHeight_s32);
 
     close(inputFileDescriptor_fd);
     close(outputFileDescriptor_fd);
