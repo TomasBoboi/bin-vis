@@ -14,6 +14,7 @@
 char*   inputFileName_pc;
 int     inputFileDescriptor_fd = -1;
 ssize_t inputNumberOfBytesRead_sz = 0;
+ssize_t currentInputNumberOfBytesRead_sz = 0;
 
 struct stat binaryFileStats_st;
 uint32_t    binaryFileSizeBytes_u32 = 0;
@@ -77,7 +78,7 @@ int main(int argc, char **argv)
     }
 
     binaryFileContents_ppu8 = (uint8_t **)malloc(outputImageHeight_s32 * sizeof(uint8_t *));
-    for(int32_t rowIndex_s32 = outputImageHeight_s32 - 1; rowIndex_s32 >= 0; rowIndex_s32--)
+    for(int32_t rowIndex_s32 = 0; rowIndex_s32 < outputImageHeight_s32; rowIndex_s32++)
     {
         binaryFileContents_ppu8[rowIndex_s32] = (uint8_t *)malloc(outputImageWidthBytes_s32 * sizeof(uint8_t));
 
@@ -86,7 +87,12 @@ int main(int argc, char **argv)
             binaryFileContents_ppu8[rowIndex_s32][columnIndex_s32] = 0;
         }
 
-        inputNumberOfBytesRead_sz += read(inputFileDescriptor_fd, binaryFileContents_ppu8[rowIndex_s32], outputImageWidthBytes_s32);
+        currentInputNumberOfBytesRead_sz = read(inputFileDescriptor_fd, binaryFileContents_ppu8[rowIndex_s32], outputImageWidthBytes_s32);
+        if(currentInputNumberOfBytesRead_sz != outputImageWidthBytes_s32)
+        {
+            utils_ErrorMessage("could not read data block from input file");
+        }
+        inputNumberOfBytesRead_sz += currentInputNumberOfBytesRead_sz;
     }
 
     if(inputNumberOfBytesRead_sz != binaryFileSizeBytes_u32)
@@ -95,7 +101,7 @@ int main(int argc, char **argv)
     }
 
     outputFileDescriptor_fd = open(outputFileName_pc, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
-    if(-1 == outputFileDescriptor_fd)
+    if(0 > outputFileDescriptor_fd)
     {
         utils_ErrorMessage("invalid output file");
     }

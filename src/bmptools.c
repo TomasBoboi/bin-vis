@@ -59,7 +59,7 @@ static void bmp_WriteInfoHeader(int outputFileDescriptor_fd, int32_t imageWidth_
     bitmapInfoHeader_t.colorPlanes_u16          = BMP_COLOR_PLANES;
     bitmapInfoHeader_t.colorDepth_u16           = BMP_COLOR_DEPTH;
     bitmapInfoHeader_t.compressionMethod_u32    = BMP_COMPRESSION_METHOD;
-    bitmapInfoHeader_t.rawImageSize_u32         = imageWidth_s32 * imageHeight_s32 * BMP_COLOR_DEPTH * 8;
+    bitmapInfoHeader_t.rawImageSize_u32         = imageWidth_s32 * imageHeight_s32 * BMP_COLOR_DEPTH;
     bitmapInfoHeader_t.horizontalResolution_s32 = BMP_HORIZONTAL_RESOLUTION;
     bitmapInfoHeader_t.verticalResolution_s32   = BMP_VERTICAL_RESOLUTION;
     bitmapInfoHeader_t.colorPalette_u32         = BMP_COLOR_PALETTE;
@@ -92,19 +92,13 @@ static void bmp_WriteColorPalette(int outputFileDescriptor_fd)
 
 void bmp_WriteImage(int outputFileDescriptor_fd, uint8_t **pixelData_ppu8, int32_t imageWidth_s32, int32_t imageHeight_s32)
 {
-    printf("Writing the image to the output file...\n");
+    printf("%d %d Writing the image to the output file...\n", imageHeight_s32, imageWidth_s32);
 
     int32_t row_s32, column_s32;
-    int32_t unpaddedWidth_s32 = imageWidth_s32;
 
-    while(imageWidth_s32 % 4 != 0) imageWidth_s32++;
-    for(column_s32 = unpaddedWidth_s32; column_s32 < imageWidth_s32; column_s32++)
-        for(row_s32 = 0; row_s32 < imageHeight_s32; row_s32++)
-            pixelData_ppu8[row_s32][column_s32] = BMP_COLOR_WHITE;
+    bmp_WriteFileHeader(outputFileDescriptor_fd, imageWidth_s32, imageHeight_s32);
 
-    bmp_WriteFileHeader(outputFileDescriptor_fd, unpaddedWidth_s32, imageHeight_s32);
-
-    bmp_WriteInfoHeader(outputFileDescriptor_fd, unpaddedWidth_s32, imageHeight_s32);
+    bmp_WriteInfoHeader(outputFileDescriptor_fd, imageWidth_s32, imageHeight_s32);
 
     bmp_WriteColorPalette(outputFileDescriptor_fd);
 
