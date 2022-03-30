@@ -38,10 +38,10 @@ static void bmp_WriteFileHeader(int outputFileDescriptor_fd, int32_t imageWidth_
 
     bitmapFileHeader_t.fileType_u16 =   utils_LittleToBigEndian16(BMP_FILE_TYPE);
     bitmapFileHeader_t.fileSize_u32 =   (imageWidth_s32 * imageHeight_s32) +
-                                            BMP_HEADER_SIZE + BMP_INFO_HEADER_SIZE + BMP_PALETTE_SIZE;
-    bitmapFileHeader_t.reserved1_u16    =   0x0000;
-    bitmapFileHeader_t.reserved2_u16    =   0x0000;
-    bitmapFileHeader_t.pixelOffset_u32  =   BMP_HEADER_SIZE + BMP_INFO_HEADER_SIZE + BMP_PALETTE_SIZE;
+                                          BMP_HEADER_SIZE + BMP_INFO_HEADER_SIZE + BMP_PALETTE_SIZE;
+    bitmapFileHeader_t.reserved1_u16    = 0x0000;
+    bitmapFileHeader_t.reserved2_u16    = 0x0000;
+    bitmapFileHeader_t.pixelOffset_u32  = BMP_HEADER_SIZE + BMP_INFO_HEADER_SIZE + BMP_PALETTE_SIZE;
 
     if(write(outputFileDescriptor_fd, &bitmapFileHeader_t, sizeof(bitmapFileHeader_t)) < 0)
     {
@@ -73,33 +73,29 @@ static void bmp_WriteInfoHeader(int outputFileDescriptor_fd, int32_t imageWidth_
 
 static void bmp_WriteColorPalette(int outputFileDescriptor_fd)
 {
-    uint32_t currentColor_u32, colorToBeWritten_u32;
+    uint32_t currentColor_u32;
 
-    for(currentColor_u32 = 0; currentColor_u32 < 256; currentColor_u32 += 255)
+    currentColor_u32 = 0x00000000;
+    if(write(outputFileDescriptor_fd, &currentColor_u32, sizeof(currentColor_u32)) < 0)
     {
-        colorToBeWritten_u32 =  currentColor_u32;  colorToBeWritten_u32 <<= 8;
-        colorToBeWritten_u32 |= currentColor_u32; colorToBeWritten_u32 <<= 8;
-        colorToBeWritten_u32 |= currentColor_u32; colorToBeWritten_u32 <<= 8;
-        colorToBeWritten_u32 &= 0xFFFFFF00;
-        colorToBeWritten_u32 =  utils_LittleToBigEndian32(colorToBeWritten_u32);
+        utils_ErrorMessage("writing the color palette to the output file");
+    }
 
-        if(write(outputFileDescriptor_fd, &colorToBeWritten_u32, sizeof(colorToBeWritten_u32)) < 0)
-        {
-            utils_ErrorMessage("writing the color palette to the output file");
-        }
+    currentColor_u32 = 0x00FFFFFF;
+    if(write(outputFileDescriptor_fd, &currentColor_u32, sizeof(currentColor_u32)) < 0)
+    {
+        utils_ErrorMessage("writing the color palette to the output file");
     }
 }
 
 void bmp_WriteImage(int outputFileDescriptor_fd, uint8_t **pixelData_ppu8, int32_t imageWidth_s32, int32_t imageHeight_s32)
 {
-    printf("%d %d Writing the image to the output file...\n", imageHeight_s32, imageWidth_s32);
+    printf("Writing the image to the output file...\n");
 
     int32_t row_s32, column_s32;
 
     bmp_WriteFileHeader(outputFileDescriptor_fd, imageWidth_s32, imageHeight_s32);
-
     bmp_WriteInfoHeader(outputFileDescriptor_fd, imageWidth_s32, imageHeight_s32);
-
     bmp_WriteColorPalette(outputFileDescriptor_fd);
 
     for(row_s32 = imageHeight_s32 - 1; row_s32 >= 0; row_s32--)
